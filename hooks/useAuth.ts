@@ -5,6 +5,7 @@ import {
   signupUser,
   logoutUser,
   getToken,
+  decodeUserFromToken,
   AuthUser,
   LoginPayload,
   SignupPayload,
@@ -24,15 +25,20 @@ export function useAuth() {
     isAuthenticated: false,
   });
 
-  // Check for existing token on mount
+  // Restore session from stored token on mount
   useEffect(() => {
     (async () => {
-      const token = await getToken();
-      setState((s) => ({
-        ...s,
-        isLoading: false,
-        isAuthenticated: !!token,
-      }));
+      try {
+        const token = await getToken();
+        if (token) {
+          const user = decodeUserFromToken(token);
+          setState({ user, isLoading: false, isAuthenticated: true });
+        } else {
+          setState({ user: null, isLoading: false, isAuthenticated: false });
+        }
+      } catch {
+        setState({ user: null, isLoading: false, isAuthenticated: false });
+      }
     })();
   }, []);
 
@@ -40,7 +46,7 @@ export function useAuth() {
     async (payload: LoginPayload) => {
       const { user } = await loginUser(payload);
       setState({ user, isLoading: false, isAuthenticated: true });
-      router.replace("/");
+      router.replace("/(tabs)" as never);
     },
     [router]
   );

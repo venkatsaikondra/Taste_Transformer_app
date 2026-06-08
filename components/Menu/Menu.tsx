@@ -13,11 +13,11 @@ import { useRouter, usePathname } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 const NAV_LINKS = [
-  { label: "VISION", route: "/predict" },
-  { label: "DASHBOARD", route: "/dashboard" },
-  { label: "COMMUNITY", route: "/community" },
-  { label: "OPEN FRIDGE", route: "/fridge", isCta: true },
-  { label: "PROFILE", route: "/profile" },
+  { label: "HOME", route: "/(tabs)/" },
+  { label: "DASHBOARD", route: "/(tabs)/dashboard" },
+  { label: "COMMUNITY", route: "/(tabs)/community" },
+  { label: "OPEN FRIDGE", route: "/(tabs)/fridge", isCta: true },
+  { label: "PROFILE", route: "/(tabs)/profile" },
 ];
 
 export default function Menu() {
@@ -67,7 +67,7 @@ export default function Menu() {
         <View style={styles.controls}>
           <TouchableOpacity
             style={styles.profileIcon}
-            onPress={() => router.push("/profile" as never)}
+            onPress={() => router.push("/(tabs)/profile" as never)}
             activeOpacity={0.8}
           >
             <Ionicons name="person-outline" size={18} color="#fff" />

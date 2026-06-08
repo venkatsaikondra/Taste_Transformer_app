@@ -1,37 +1,46 @@
-"use client";
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Alert,
+  View, Text, TextInput, TouchableOpacity, ActivityIndicator,
+  KeyboardAvoidingView, Platform, ScrollView, Alert,
+  Animated, StyleSheet,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Link } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
+
+const ACCENT = "#c5fb45";
+const BG = "#050505";
+const CARD_BG = "#0d0d0d";
+const BORDER = "#222";
+const MONO = Platform.OS === "ios" ? "Courier New" : "monospace";
 
 export default function LoginScreen() {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+
+  const cardOpacity = useRef(new Animated.Value(0)).current;
+  const cardY = useRef(new Animated.Value(24)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(cardOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.spring(cardY, { toValue: 0, tension: 70, friction: 14, useNativeDriver: true }),
+    ]).start();
+  }, []);
 
   const onLogin = async () => {
-    if (!email || !password) {
+    if (!email.trim() || !password.trim()) {
       Alert.alert("Error", "Please fill in all fields");
       return;
     }
     try {
       setLoading(true);
-      await login({ email, password });
-      // navigation is handled inside useAuth → router.replace("/")
+      await login({ email: email.trim().toLowerCase(), password });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Authentication Failed";
+      const msg = err instanceof Error ? err.message : "Authentication failed";
       Alert.alert("Login Failed", msg);
     } finally {
       setLoading(false);
@@ -39,184 +48,178 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.root}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      {/* Grid background dots */}
-      <View style={styles.gridOverlay} pointerEvents="none" />
+    <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
+      {/* Grid dot background */}
+      <View style={styles.grid} pointerEvents="none">
+        {Array.from({ length: 12 }).map((_, row) =>
+          Array.from({ length: 8 }).map((_, col) => (
+            <View key={`${row}-${col}`} style={[styles.dot, { top: row * 110 + 40, left: col * 52 + 20 }]} />
+          ))
+        )}
+      </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.card}>
-          {/* Corner accents */}
-          <View style={[styles.corner, styles.cornerTL]} />
-          <View style={[styles.corner, styles.cornerBR]} />
-
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.title}>USER_AUTHENTICATION</Text>
-            <Text style={styles.subtitle}>IDENTITY VERIFICATION REQUIRED</Text>
+      <KeyboardAvoidingView style={styles.kav} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Logo / brand mark */}
+          <View style={styles.brand}>
+            <Text style={styles.brandText}>FOODZILLA</Text>
+            <View style={styles.brandLine} />
           </View>
 
-          {/* Email */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>EMAIL_ADDRESS</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              placeholderTextColor="#3f3f3f"
-              selectionColor="#c5fb45"
-            />
-            <View style={styles.inputUnderline} />
-          </View>
+          {/* Card */}
+          <Animated.View style={[styles.card, { opacity: cardOpacity, transform: [{ translateY: cardY }] }]}>
+            {/* Corner accents */}
+            <View style={styles.cornerTL} />
+            <View style={styles.cornerTR} />
+            <View style={styles.cornerBL} />
+            <View style={styles.cornerBR} />
 
-          {/* Password */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>PASSWORD</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoComplete="password"
-              placeholderTextColor="#3f3f3f"
-              selectionColor="#c5fb45"
-            />
-            <View style={styles.inputUnderline} />
-          </View>
+            {/* Header */}
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>USER_AUTHENTICATION</Text>
+              <Text style={styles.cardSub}>IDENTITY VERIFICATION REQUIRED</Text>
+            </View>
 
-          {/* Submit */}
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={onLogin}
-            disabled={loading}
-            activeOpacity={0.85}
-          >
-            {loading ? (
-              <ActivityIndicator color="#000" />
-            ) : (
-              <Text style={styles.buttonText}>INITIALIZE_LOGIN</Text>
-            )}
-          </TouchableOpacity>
+            {/* Email field */}
+            <View style={styles.field}>
+              <Text style={styles.label}>EMAIL_ADDRESS</Text>
+              <TextInput
+                style={[styles.input, focusedField === "email" && styles.inputFocused]}
+                value={email}
+                onChangeText={setEmail}
+                onFocus={() => setFocusedField("email")}
+                onBlur={() => setFocusedField(null)}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                placeholderTextColor="#333"
+                selectionColor={ACCENT}
+                returnKeyType="next"
+              />
+              <View style={[styles.fieldLine, focusedField === "email" && styles.fieldLineActive]} />
+            </View>
 
-          {/* Link to signup */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>NO RECORDS FOUND? </Text>
-            <Link href="/signup" asChild>
-              <TouchableOpacity>
-                <Text style={styles.footerLink}>SIGN_UP</Text>
-              </TouchableOpacity>
-            </Link>
-          </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            {/* Password field */}
+            <View style={styles.field}>
+              <Text style={styles.label}>PASSWORD</Text>
+              <TextInput
+                style={[styles.input, focusedField === "password" && styles.inputFocused]}
+                value={password}
+                onChangeText={setPassword}
+                onFocus={() => setFocusedField("password")}
+                onBlur={() => setFocusedField(null)}
+                secureTextEntry
+                autoComplete="password"
+                placeholderTextColor="#333"
+                selectionColor={ACCENT}
+                returnKeyType="done"
+                onSubmitEditing={onLogin}
+              />
+              <View style={[styles.fieldLine, focusedField === "password" && styles.fieldLineActive]} />
+            </View>
+
+            {/* Submit button */}
+            <TouchableOpacity
+              style={[styles.btn, loading && styles.btnLoading]}
+              onPress={onLogin}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              {loading
+                ? <ActivityIndicator color="#000" size="small" />
+                : <Text style={styles.btnText}>INITIALIZE_LOGIN →</Text>
+              }
+            </TouchableOpacity>
+
+            {/* Divider */}
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>OR</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Sign up link */}
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>NO RECORDS FOUND? </Text>
+              <Link href="/signup" asChild>
+                <TouchableOpacity activeOpacity={0.7}>
+                  <Text style={styles.footerLink}>CREATE_ACCOUNT</Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
+          </Animated.View>
+
+          {/* Bottom hint */}
+          <Text style={styles.hint}>SECURE · ENCRYPTED · PRIVATE</Text>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
-const ACCENT = "#c5fb45";
-const BG = "#050505";
-const CARD_BG = "#0a0a0a";
-const BORDER = "#1f1f1f";
-
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: BG,
-  },
-  gridOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    // Simulated grid via repeating border — React Native can't do CSS background-image.
-    // For a true grid use react-native-svg or an image asset.
-    opacity: 0.06,
-  },
+  root: { flex: 1, backgroundColor: BG },
+  grid: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
+  dot: { position: "absolute", width: 2, height: 2, borderRadius: 1, backgroundColor: "#1a1a1a" },
+  kav: { flex: 1 },
   scroll: {
     flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 48,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 32,
   },
+
+  // Brand
+  brand: { alignItems: "center", marginBottom: 32 },
+  brandText: {
+    fontFamily: MONO, fontSize: 18, fontWeight: "900",
+    color: ACCENT, letterSpacing: 6,
+  },
+  brandLine: { width: 40, height: 2, backgroundColor: ACCENT, marginTop: 8 },
+
+  // Card
   card: {
     width: "100%",
-    maxWidth: 440,
+    maxWidth: 400,
     backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: BORDER,
-    borderRadius: 28,
+    borderColor: "#1e1e1e",
+    borderRadius: 4,
     padding: 28,
-    overflow: "hidden",
     position: "relative",
   },
-  // Corner accent squares
-  corner: {
-    position: "absolute",
-    width: 16,
-    height: 16,
-  },
-  cornerTL: {
-    top: -1,
-    left: -1,
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderColor: ACCENT,
-  },
-  cornerBR: {
-    bottom: -1,
-    right: -1,
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
-    borderColor: ACCENT,
-  },
-  header: {
-    marginBottom: 28,
-  },
-  title: {
-    fontFamily: Platform.OS === "ios" ? "Courier New" : "monospace",
-    fontSize: 22,
-    fontWeight: "900",
-    color: "#fff",
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontFamily: Platform.OS === "ios" ? "Courier New" : "monospace",
-    fontSize: 10,
-    letterSpacing: 3,
-    color: "#555",
-    marginTop: 4,
-    textTransform: "uppercase",
-  },
-  fieldGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontFamily: Platform.OS === "ios" ? "Courier New" : "monospace",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: ACCENT,
-    textTransform: "uppercase",
-    marginBottom: 6,
-  },
+
+  // Corner accents
+  cornerTL: { position: "absolute", top: -1, left: -1, width: 18, height: 18, borderTopWidth: 2, borderLeftWidth: 2, borderColor: ACCENT },
+  cornerTR: { position: "absolute", top: -1, right: -1, width: 18, height: 18, borderTopWidth: 2, borderRightWidth: 2, borderColor: ACCENT },
+  cornerBL: { position: "absolute", bottom: -1, left: -1, width: 18, height: 18, borderBottomWidth: 2, borderLeftWidth: 2, borderColor: ACCENT },
+  cornerBR: { position: "absolute", bottom: -1, right: -1, width: 18, height: 18, borderBottomWidth: 2, borderRightWidth: 2, borderColor: ACCENT },
+
+  // Card header
+  cardHeader: { marginBottom: 28 },
+  cardTitle: { fontFamily: MONO, fontSize: 17, fontWeight: "900", color: "#fff", letterSpacing: 0.5 },
+  cardSub: { fontFamily: MONO, fontSize: 9, letterSpacing: 3, color: "#444", marginTop: 6, textTransform: "uppercase" },
+
+  // Fields
+  field: { marginBottom: 22 },
+  label: { fontFamily: MONO, fontSize: 9, letterSpacing: 2.5, color: ACCENT, marginBottom: 8, textTransform: "uppercase" },
   input: {
-    fontFamily: Platform.OS === "ios" ? "Courier New" : "monospace",
-    fontSize: 14,
-    color: "#fff",
-    paddingVertical: 8,
-    paddingHorizontal: 0,
+    fontFamily: MONO, fontSize: 15, color: "#fff",
+    paddingVertical: 10, paddingHorizontal: 0,
     backgroundColor: "transparent",
   },
-  inputUnderline: {
-    height: 1,
-    backgroundColor: BORDER,
-  },
-  button: {
+  inputFocused: { color: "#fff" },
+  fieldLine: { height: 1, backgroundColor: "#222" },
+  fieldLineActive: { backgroundColor: ACCENT },
+
+  // Button
+  btn: {
     backgroundColor: ACCENT,
     paddingVertical: 16,
     alignItems: "center",
@@ -224,34 +227,19 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderRadius: 2,
   },
-  buttonDisabled: {
-    backgroundColor: "#1f1f1f",
-  },
-  buttonText: {
-    fontFamily: Platform.OS === "ios" ? "Courier New" : "monospace",
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 3,
-    color: "#000",
-    textTransform: "uppercase",
-  },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 24,
-  },
-  footerText: {
-    fontFamily: Platform.OS === "ios" ? "Courier New" : "monospace",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#444",
-    textTransform: "uppercase",
-  },
-  footerLink: {
-    fontFamily: Platform.OS === "ios" ? "Courier New" : "monospace",
-    fontSize: 10,
-    letterSpacing: 2,
-    color: "#fff",
-    textTransform: "uppercase",
-  },
+  btnLoading: { backgroundColor: "#1a1a1a", borderWidth: 1, borderColor: ACCENT },
+  btnText: { fontFamily: MONO, fontSize: 12, fontWeight: "800", letterSpacing: 2, color: "#000" },
+
+  // Divider
+  divider: { flexDirection: "row", alignItems: "center", gap: 12, marginVertical: 20 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: "#1e1e1e" },
+  dividerText: { fontFamily: MONO, fontSize: 10, color: "#333", letterSpacing: 2 },
+
+  // Footer
+  footer: { flexDirection: "row", justifyContent: "center", alignItems: "center", flexWrap: "wrap", gap: 4 },
+  footerText: { fontFamily: MONO, fontSize: 10, color: "#444", letterSpacing: 1 },
+  footerLink: { fontFamily: MONO, fontSize: 10, color: ACCENT, letterSpacing: 1, fontWeight: "700" },
+
+  // Bottom hint
+  hint: { marginTop: 24, fontFamily: MONO, fontSize: 9, color: "#2a2a2a", letterSpacing: 3, textAlign: "center" },
 });
