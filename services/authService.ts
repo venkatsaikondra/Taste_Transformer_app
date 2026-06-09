@@ -1,5 +1,5 @@
-import * as SecureStore from "expo-secure-store";
 import { API_BASE_URL, TOKEN_KEY } from "@/constants/auth";
+import * as SecureStore from "expo-secure-store";
 
 const BASE = API_BASE_URL.replace(/\/$/, "");
 
@@ -42,7 +42,10 @@ export function decodeUserFromToken(token: string): AuthUser | null {
 }
 
 // ─── XHR-based POST — exposes set-cookie in React Native ─────────────────────
-function xhrPost(url: string, body: object): Promise<{
+function xhrPost(
+  url: string,
+  body: object,
+): Promise<{
   status: number;
   data: any;
   cookieHeader: string;
@@ -54,12 +57,18 @@ function xhrPost(url: string, body: object): Promise<{
     xhr.withCredentials = true;
     xhr.onreadystatechange = () => {
       if (xhr.readyState !== 4) return;
+      const responseText = xhr.responseText || "{}";
       try {
-        const data = JSON.parse(xhr.responseText);
+        const data = JSON.parse(responseText);
         const cookieHeader = xhr.getResponseHeader("set-cookie") ?? "";
         resolve({ status: xhr.status, data, cookieHeader });
       } catch {
-        reject(new Error("Invalid response from server"));
+        // Handle non-JSON or empty responses gracefully
+        resolve({
+          status: xhr.status,
+          data: { message: responseText },
+          cookieHeader: xhr.getResponseHeader("set-cookie") ?? "",
+        });
       }
     };
     xhr.onerror = () => reject(new Error("Network request failed"));
@@ -70,10 +79,12 @@ function xhrPost(url: string, body: object): Promise<{
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
-export async function loginUser(payload: LoginPayload): Promise<{ user: AuthUser }> {
+export async function loginUser(
+  payload: LoginPayload,
+): Promise<{ user: AuthUser }> {
   const { status, data, cookieHeader } = await xhrPost(
     `${BASE}/api/users/login`,
-    payload
+    payload,
   );
 
   if (status < 200 || status >= 300) {
@@ -83,9 +94,16 @@ export async function loginUser(payload: LoginPayload): Promise<{ user: AuthUser
   // Extract token from set-cookie header
   // Header format: token=<JWT>; Path=/; ...
   let token: string | null = null;
+
+  // Try Cookie header first
   const match = cookieHeader.match(/(?:^|,\s*)token=([^;,]+)/i);
   if (match?.[1]) {
     token = match[1].trim();
+  }
+
+  // Fallback: Check if token is in the response body
+  if (!token && data?.token) {
+    token = data.token;
   }
 
   if (!token) {
@@ -105,15 +123,38 @@ export async function loginUser(payload: LoginPayload): Promise<{ user: AuthUser
 }
 
 // ─── Signup ───────────────────────────────────────────────────────────────────
-export async function signupUser(payload: SignupPayload): Promise<void> {
-  const { status, data } = await xhrPost(
+export async function signupUser(
+  payload: SignupPayload,
+): Promise<{ user: AuthUser }> {
+  const { status, data, cookieHeader } = await xhrPost(
     `${BASE}/api/users/signup`,
-    payload
+    payload,
   );
 
   if (status < 200 || status >= 300) {
     throw new Error(data?.error ?? data?.message ?? "Registration Failed");
   }
+
+  // Extract token from set-cookie header, similar to loginUser
+  let token: string | null = null;
+  const match = cookieHeader.match(/(?:^|,\s*)token=([^;,]+)/i);
+  if (match?.[1]) {
+    token = match[1].trim();
+  } else if (data?.token) {
+    token = data.token;
+  }
+
+  if (token) {
+    await SecureStore.setItemAsync(TOKEN_KEY, token);
+  }
+
+  // Decode user from JWT or construct from payload
+  const decoded = token ? decodeUserFromToken(token) : null;
+  const user: AuthUser = decoded ?? {
+    username: data?.user?.username ?? payload.username,
+    email: payload.email,
+  };
+  return { user };
 }
 
 // ─── Logout ───────────────────────────────────────────────────────────────────

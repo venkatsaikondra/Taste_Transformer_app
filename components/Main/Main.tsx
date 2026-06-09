@@ -76,7 +76,7 @@ export default function Main() {
               </Animated.Text>
             </View>
             <View style={styles.lineMask}>
-              <Animated.Text style={[styles.headline, { transform: [{ translateY: line2Y }] }]}>
+              <Animated.Text style={[styles.headline, { transform: [{ translateY: line1Y }] }]}>
                 TRANSFORMER
               </Animated.Text>
             </View>
@@ -133,8 +133,8 @@ const styles = StyleSheet.create({
   headlineWrapper: { marginBottom: 28 },
   lineMask: { overflow: "hidden" },
   headline: {
-    fontSize: width > 400 ? 76 : 60,
-    fontWeight: "900",
+    fontSize: width > 500 ? 76 : 50,
+    fontWeight: "800",
     color: "#fff",
     lineHeight: width > 400 ? 72 : 56,
     letterSpacing: -2,
