@@ -8,6 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import Menu from "@/components/Menu/Menu";
+import KitchenMode from "@/components/KitchenMode/KitchenMode";
 import {
   fetchRecipes, deleteRecipe, toggleFavorite,
   formatRecipeText, getVibeColor, formatDate,
@@ -22,6 +23,7 @@ export default function DashboardScreen() {
   const [error, setError] = useState<string | null>(null);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [kitchenModeOpen, setKitchenModeOpen] = useState(false);
 
   const loadRecipes = useCallback(async () => {
     try {
@@ -285,20 +287,58 @@ export default function DashboardScreen() {
                   ))}
                 </View>
               )}
-
-              {/* Delete */}
-              <TouchableOpacity
-                style={styles.deleteBtnFull}
-                onPress={() => handleDelete(selectedRecipe._id)}
-              >
-                <Ionicons name="trash-outline" size={16} color="#ef4444" />
-                <Text style={styles.deleteBtnText}>Delete Recipe</Text>
-              </TouchableOpacity>
               <View style={{ height: 32 }} />
             </ScrollView>
+
+            {/* Modal Footer with Actions */}
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.modalDeleteBtn}
+                onPress={() => handleDelete(selectedRecipe._id)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                <Text style={styles.modalDeleteBtnText}>DELETE</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalKitchenBtn}
+                onPress={() => {
+                  setDetailOpen(false);
+                  setKitchenModeOpen(true);
+                }}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.modalKitchenBtnText}>👩‍🍳 KITCHEN MODE</Text>
+              </TouchableOpacity>
+            </View>
           </SafeAreaView>
         )}
       </Modal>
+
+      {/* ── Kitchen Mode ── */}
+      {kitchenModeOpen && selectedRecipe && (
+        <KitchenMode
+          steps={
+            selectedRecipe.recipeText
+              .split("\n")
+              .map((l: string) => l.trim())
+              .filter((l: string) => l.length > 0)
+              .filter(
+                (l: string) =>
+                  !/^(recipe name|ingredients?|tips?|notes?|steps?|instructions?|directions?)/i.test(
+                    l,
+                  ),
+              )
+              .map((l: string) => l.replace(/^\d+[.)]\s*|^[-•*]\s*/, ""))
+          }
+          onClose={() => setKitchenModeOpen(false)}
+          onBackToRecipe={() => {
+            setKitchenModeOpen(false);
+            setDetailOpen(true);
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -440,11 +480,44 @@ const styles = StyleSheet.create({
   },
   videoTitle: { color: "#e2e8f0", fontSize: 13, fontWeight: "600" },
   videoLink: { color: ACCENT, fontSize: 11, fontFamily: MONO },
-  deleteBtnFull: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-    marginTop: 16, paddingVertical: 14,
-    backgroundColor: "rgba(239,68,68,0.1)", borderWidth: 1,
-    borderColor: "rgba(239,68,68,0.3)", borderRadius: 14,
+  modalFooter: {
+    flexDirection: "row",
+    gap: 12,
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "#0a0a0f",
   },
-  deleteBtnText: { color: "#ef4444", fontSize: 14, fontWeight: "600" },
-});
+  modalDeleteBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "rgba(239,68,68,0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(239,68,68,0.3)",
+    borderRadius: 12,
+    height: 48,
+  },
+  modalDeleteBtnText: {
+    color: "#ef4444",
+    fontSize: 12,
+    fontWeight: "700",
+    fontFamily: MONO,
+  },
+  modalKitchenBtn: {
+    flex: 1,
+    backgroundColor: ACCENT,
+    borderRadius: 12,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalKitchenBtnText: {
+    color: "#000",
+    fontSize: 12,
+    fontWeight: "700",
+    fontFamily: MONO,
+  },
+});

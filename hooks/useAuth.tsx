@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useRouter } from "expo-router";
 import {
   loginUser,
@@ -17,7 +17,15 @@ interface AuthState {
   isAuthenticated: boolean;
 }
 
-export function useAuth() {
+interface AuthContextType extends AuthState {
+  login: (payload: LoginPayload) => Promise<void>;
+  signup: (payload: SignupPayload) => Promise<void>;
+  logout: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [state, setState] = useState<AuthState>({
     user: null,
@@ -65,5 +73,18 @@ export function useAuth() {
     router.replace("/login");
   }, [router]);
 
-  return { ...state, login, signup, logout };
+  return (
+    <AuthContext.Provider value={{ ...state, login, signup, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+}
+

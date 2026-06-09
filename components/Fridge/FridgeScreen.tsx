@@ -12,6 +12,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Modal,
   Platform,
   SafeAreaView,
@@ -25,7 +26,7 @@ import {
 
 type CartItem = IngredientItem & { qty: number };
 
-const NUM_COLS = 3;
+const NUM_COLS = 2;
 
 export default function FridgeScreen() {
   const [activeCatId, setActiveCatId] = useState<string | null>(null);
@@ -40,6 +41,7 @@ export default function FridgeScreen() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [recipeModalOpen, setRecipeModalOpen] = useState(false);
   const [kitchenModeOpen, setKitchenModeOpen] = useState(false);
+  const [potModalOpen, setPotModalOpen] = useState(false);
 
   const activeCategory = useMemo(
     () => CATEGORIES.find((c) => c.id === activeCatId) ?? null,
@@ -325,99 +327,144 @@ export default function FridgeScreen() {
           )}
         </View>
 
-        {/* ── Cooking Pot ── */}
-        <View style={styles.potPanel}>
-          <View style={styles.panelHeader}>
-            <Text style={styles.panelIcon}>🫕</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.panelTitle}>Cooking Pot</Text>
-              <Text style={styles.panelSub}>
-                {cart.length === 0
-                  ? "Empty — add ingredients!"
-                  : `${totalItems} item${totalItems !== 1 ? "s" : ""} · ${totalCal} kcal`}
-              </Text>
-            </View>
+      </ScrollView>
+
+      {/* Floating Pot Button */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setPotModalOpen(true)}
+        activeOpacity={0.85}
+      >
+        <Image
+          source={require("@/assets/images/cooking_pot.png")}
+          style={styles.fabImage}
+          resizeMode="contain"
+        />
+        {totalItems > 0 && (
+          <View style={styles.fabBadge}>
+            <Text style={styles.fabBadgeText}>{totalItems}</Text>
           </View>
+        )}
+      </TouchableOpacity>
 
-          {/* Cart items */}
-          {cart.length === 0 ? (
-            <View style={styles.cartEmpty}>
-              <Text style={styles.cartEmptyPot}>🫕</Text>
-              <Text style={styles.emptyText}>
-                Click ingredients to toss them in!
-              </Text>
+      {/* ── Cooking Pot Modal Sheet ── */}
+      <Modal
+        visible={potModalOpen}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setPotModalOpen(false)}
+      >
+        <View style={styles.potModalOverlay}>
+          <View style={styles.potModalSheet}>
+            {/* Header with Close */}
+            <View style={styles.potModalHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <Text style={styles.panelIcon}>🫕</Text>
+                <View>
+                  <Text style={styles.panelTitle}>Cooking Pot</Text>
+                  <Text style={styles.panelSub}>
+                    {cart.length === 0
+                      ? "Empty — add ingredients!"
+                      : `${totalItems} item${totalItems !== 1 ? "s" : ""} · ${totalCal} kcal`}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={styles.closeModalBtn}
+                onPress={() => setPotModalOpen(false)}
+              >
+                <Ionicons name="close" size={22} color="#94a3b8" />
+              </TouchableOpacity>
             </View>
-          ) : (
-            cart.map((item) => (
-              <View key={item.id} style={styles.cartItem}>
-                <Text style={styles.cartEmoji}>{item.emoji}</Text>
-                <View style={styles.cartInfo}>
-                  <Text style={styles.cartName}>{item.name}</Text>
-                  <Text style={styles.cartCal}>{item.cal * item.qty} kcal</Text>
-                </View>
-                <View style={styles.cartControls}>
-                  <TouchableOpacity
-                    style={styles.qtyBtn}
-                    onPress={() => removeItem(item.id)}
-                  >
-                    <Text style={styles.qtyBtnText}>−</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.qty}>{item.qty}</Text>
-                  <TouchableOpacity
-                    style={styles.qtyBtn}
-                    onPress={() => increaseItem(item.id)}
-                  >
-                    <Text style={styles.qtyBtnText}>+</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))
-          )}
 
-          {cart.length > 0 && (
-            <View style={styles.cartFooter}>
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Total Calories</Text>
-                <Text style={styles.totalVal}>{totalCal} kcal</Text>
-              </View>
-
-              {genError && (
-                <View style={styles.errorBanner}>
-                  <Text style={styles.errorText}>⚠️ {genError}</Text>
+            {/* Scrollable Cart items */}
+            <ScrollView style={styles.potModalScroll} showsVerticalScrollIndicator={false}>
+              {cart.length === 0 ? (
+                <View style={styles.cartEmpty}>
+                  <Text style={styles.cartEmptyPot}>🫕</Text>
+                  <Text style={styles.emptyText}>
+                    Click ingredients to toss them in!
+                  </Text>
+                </View>
+              ) : (
+                <View style={{ gap: 10 }}>
+                  {cart.map((item) => (
+                    <View key={item.id} style={styles.cartItem}>
+                      <Text style={styles.cartEmoji}>{item.emoji}</Text>
+                      <View style={styles.cartInfo}>
+                        <Text style={styles.cartName}>{item.name}</Text>
+                        <Text style={styles.cartCal}>{item.cal * item.qty} kcal</Text>
+                      </View>
+                      <View style={styles.cartControls}>
+                        <TouchableOpacity
+                          style={styles.qtyBtn}
+                          onPress={() => removeItem(item.id)}
+                        >
+                          <Text style={styles.qtyBtnText}>−</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.qty}>{item.qty}</Text>
+                        <TouchableOpacity
+                          style={styles.qtyBtn}
+                          onPress={() => increaseItem(item.id)}
+                        >
+                          <Text style={styles.qtyBtnText}>+</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))}
                 </View>
               )}
+            </ScrollView>
 
-              <TouchableOpacity
-                style={[
-                  styles.generateBtn,
-                  generating && styles.generateBtnDisabled,
-                ]}
-                onPress={handleGenerate}
-                disabled={generating}
-                activeOpacity={0.85}
-              >
-                {generating ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <Text style={styles.generateBtnText}>✨ Generate Recipe</Text>
+            {/* Footer with Actions */}
+            {cart.length > 0 && (
+              <View style={styles.cartFooter}>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>Total Calories</Text>
+                  <Text style={styles.totalVal}>{totalCal} kcal</Text>
+                </View>
+
+                {genError && (
+                  <View style={styles.errorBanner}>
+                    <Text style={styles.errorText}>⚠️ {genError}</Text>
+                  </View>
                 )}
-              </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.clearBtn}
-                onPress={() => {
-                  setCart([]);
-                  setRecipeText(null);
-                  setGenError(null);
-                }}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.clearBtnText}>Clear Pot</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+                <TouchableOpacity
+                  style={[
+                    styles.generateBtn,
+                    generating && styles.generateBtnDisabled,
+                  ]}
+                  onPress={() => {
+                    setPotModalOpen(false);
+                    handleGenerate();
+                  }}
+                  disabled={generating}
+                  activeOpacity={0.85}
+                >
+                  {generating ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.generateBtnText}>✨ Generate Recipe</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.clearBtn}
+                  onPress={() => {
+                    setCart([]);
+                    setRecipeText(null);
+                    setGenError(null);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.clearBtnText}>Clear Pot</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         </View>
-      </ScrollView>
+      </Modal>
 
       {/* ── Loading Screen ── */}
       <LoadingScreen isVisible={generating} message="COOKING UP RECIPE..." />
@@ -439,6 +486,10 @@ export default function FridgeScreen() {
               .map((l: string) => l.replace(/^\d+[.)]\s*|^[-•*]\s*/, "")) // Remove any leading list markers (e.g., "1. ", "- ", "• ")
           }
           onClose={() => setKitchenModeOpen(false)}
+          onBackToRecipe={() => {
+            setKitchenModeOpen(false);
+            setRecipeModalOpen(true);
+          }}
         />
       )}
 
@@ -451,38 +502,12 @@ export default function FridgeScreen() {
         <SafeAreaView style={styles.modalRoot}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>GENERATED_RECIPE.exe</Text>
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.saveBtn, saveSuccess && styles.saveBtnSuccess]}
-                onPress={handleSave}
-                disabled={saving || saveSuccess}
-                activeOpacity={0.8}
-              >
-                {saving ? (
-                  <ActivityIndicator size="small" color="#c5fb45" />
-                ) : (
-                  <Text style={styles.saveBtnText}>
-                    {saveSuccess ? "✓ Saved" : "💾 Save"}
-                  </Text>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.kitchenBtn}
-                onPress={() => {
-                  setRecipeModalOpen(false);
-                  setKitchenModeOpen(true);
-                }}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.kitchenBtnText}>👩‍🍳 KITCHEN MODE</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.closeModalBtn}
-                onPress={() => setRecipeModalOpen(false)}
-              >
-                <Ionicons name="close" size={20} color="#94a3b8" />
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={styles.closeModalBtn}
+              onPress={() => setRecipeModalOpen(false)}
+            >
+              <Ionicons name="close" size={22} color="#94a3b8" />
+            </TouchableOpacity>
           </View>
 
           <ScrollView
@@ -514,6 +539,35 @@ export default function FridgeScreen() {
               })}
             <View style={{ height: 40 }} />
           </ScrollView>
+
+          {/* Modal Footer containing Actions to prevent header overflow */}
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={[styles.modalSaveBtn, saveSuccess && styles.saveBtnSuccess]}
+              onPress={handleSave}
+              disabled={saving || saveSuccess}
+              activeOpacity={0.8}
+            >
+              {saving ? (
+                <ActivityIndicator size="small" color="#000" />
+              ) : (
+                <Text style={styles.modalSaveBtnText}>
+                  {saveSuccess ? "✓ SAVED TO RECIPES" : "💾 SAVE RECIPE"}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.modalKitchenBtn}
+              onPress={() => {
+                setRecipeModalOpen(false);
+                setKitchenModeOpen(true);
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.modalKitchenBtnText}>👩‍🍳 KITCHEN MODE</Text>
+            </TouchableOpacity>
+          </View>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -623,7 +677,7 @@ const styles = StyleSheet.create({
 
   // ── Item Grid ─────────────────────────────────────────────────────────────
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  gridCell: { width: `${100 - (8 * (NUM_COLS - 1)) / NUM_COLS}%` },
+  gridCell: { width: `${(100 - 8 * (NUM_COLS - 1)) / NUM_COLS}%` },
   itemCard: {
     flex: 1,
     minWidth: 90,
@@ -762,22 +816,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     fontWeight: "700",
   },
-  modalActions: { flexDirection: "row", alignItems: "center", gap: 10 },
-  saveBtn: {
-    backgroundColor: "rgba(197,251,69,0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(197,251,69,0.3)",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    minWidth: 70,
-    alignItems: "center",
-  },
-  saveBtnSuccess: {
-    backgroundColor: "rgba(34,197,94,0.2)",
-    borderColor: "rgba(34,197,94,0.5)",
-  },
-  saveBtnText: { color: ACCENT, fontSize: 12, fontWeight: "700" },
   closeModalBtn: {
     width: 32,
     height: 32,
@@ -810,18 +848,105 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginVertical: 4,
   },
-  kitchenBtn: {
-    backgroundColor: "rgba(197,251,69,0.15)",
-    borderWidth: 1,
-    borderColor: "rgba(197,251,69,0.4)",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+  modalFooter: {
+    flexDirection: "row",
+    gap: 12,
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "#0a0a0f",
   },
-  kitchenBtnText: {
-    color: "#c5fb45",
-    fontSize: 11,
+  modalSaveBtn: {
+    flex: 1,
+    backgroundColor: "rgba(197,251,69,0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(197,251,69,0.3)",
+    borderRadius: 12,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  saveBtnSuccess: {
+    backgroundColor: "rgba(34,197,94,0.2)",
+    borderColor: "rgba(34,197,94,0.5)",
+  },
+  modalSaveBtnText: {
+    color: ACCENT,
+    fontSize: 12,
     fontWeight: "700",
     fontFamily: MONO,
+  },
+  modalKitchenBtn: {
+    flex: 1,
+    backgroundColor: ACCENT,
+    borderRadius: 12,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalKitchenBtnText: {
+    color: "#000",
+    fontSize: 12,
+    fontWeight: "700",
+    fontFamily: MONO,
+  },
+  // Floating Pot button
+  fab: {
+    position: "absolute",
+    bottom: Platform.OS === "ios" ? 100 : 80,
+    right: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: ACCENT,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 8,
+    shadowColor: ACCENT,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    zIndex: 99,
+  },
+  fabImage: { width: 32, height: 32 },
+  fabBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#ef4444",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fabBadgeText: { color: "#fff", fontSize: 10, fontWeight: "900" },
+  // Bottom Sheet Modal
+  potModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "flex-end",
+  },
+  potModalSheet: {
+    backgroundColor: "#0a0a0f",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    padding: 20,
+    maxHeight: "80%",
+  },
+  potModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.08)",
+    paddingBottom: 12,
+  },
+  potModalScroll: {
+    marginBottom: 16,
   },
 });

@@ -71,12 +71,20 @@ export default function Main() {
           {/* Headline with line-mask slide-up */}
           <View style={styles.headlineWrapper}>
             <View style={styles.lineMask}>
-              <Animated.Text style={[styles.headline, { transform: [{ translateY: line1Y }] }]}>
+              <Animated.Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                style={[styles.headline, { transform: [{ translateY: line1Y }] }]}
+              >
                 TASTE
               </Animated.Text>
             </View>
             <View style={styles.lineMask}>
-              <Animated.Text style={[styles.headline, { transform: [{ translateY: line1Y }] }]}>
+              <Animated.Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                style={[styles.headline, { transform: [{ translateY: line2Y }] }]}
+              >
                 TRANSFORMER
               </Animated.Text>
             </View>

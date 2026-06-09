@@ -16,9 +16,10 @@ import {
 interface KitchenModeProps {
   steps: string[];
   onClose: () => void;
+  onBackToRecipe?: () => void;
 }
 
-export default function KitchenMode({ steps, onClose }: KitchenModeProps) {
+export default function KitchenMode({ steps, onClose, onBackToRecipe }: KitchenModeProps) {
   const { width } = useWindowDimensions();
   const {
     currentStep,
@@ -63,7 +64,7 @@ export default function KitchenMode({ steps, onClose }: KitchenModeProps) {
         <SafeAreaView style={styles.overlay}>
           <View style={styles.header}>
             <TouchableOpacity style={styles.exitBtn} onPress={onClose}>
-              <Text style={styles.exitBtnText}>EXIT KITCHEN</Text>
+              <Text style={styles.exitBtnText}>EXIT</Text>
             </TouchableOpacity>
             <Text style={styles.progressTracker}>No steps available</Text>
             <View style={{ width: 90 }} />
@@ -83,13 +84,23 @@ export default function KitchenMode({ steps, onClose }: KitchenModeProps) {
       <SafeAreaView style={styles.overlay}>
         {/* ── Header ── */}
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.exitBtn}
-            onPress={onClose}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.exitBtnText}>EXIT KITCHEN</Text>
-          </TouchableOpacity>
+          {onBackToRecipe ? (
+            <TouchableOpacity
+              style={styles.backBtn}
+              onPress={onBackToRecipe}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.backBtnText}>← BACK</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.exitBtn}
+              onPress={onClose}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.exitBtnText}>EXIT</Text>
+            </TouchableOpacity>
+          )}
 
           <View style={styles.progressWrapper}>
             <Text style={styles.progressTracker}>
@@ -103,15 +114,26 @@ export default function KitchenMode({ steps, onClose }: KitchenModeProps) {
             </Text>
           </View>
 
-          {speechAvailable && (
-            <TouchableOpacity
-              style={styles.repeatBtn}
-              onPress={() => readStep(currentStep)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.repeatBtnText}>🔊 REPEAT</Text>
-            </TouchableOpacity>
-          )}
+          <View style={styles.headerRight}>
+            {speechAvailable && (
+              <TouchableOpacity
+                style={styles.repeatBtn}
+                onPress={() => readStep(currentStep)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.repeatBtnText}>🔊 REPEAT</Text>
+              </TouchableOpacity>
+            )}
+            {onBackToRecipe && (
+              <TouchableOpacity
+                style={styles.exitBtn}
+                onPress={onClose}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.exitBtnText}>EXIT</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* ── Step Content ── */}
@@ -273,11 +295,30 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: MONO,
   },
+  backBtn: {
+    borderWidth: 1,
+    borderColor: ACCENT,
+    borderRadius: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  backBtnText: {
+    color: ACCENT,
+    fontFamily: MONO,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   repeatBtn: {
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.15)",
     borderRadius: 4,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 6,
   },
   repeatBtnText: {

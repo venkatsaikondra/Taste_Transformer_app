@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Modal, View, Text, TextInput, TouchableOpacity, StyleSheet,
   Platform, ActivityIndicator, ScrollView,
@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { createPost, Post } from "@/services/community.api";
+import { fetchRecipes, Recipe } from "@/services/recipeService";
 
 interface Props {
   visible: boolean;
@@ -16,12 +17,28 @@ interface Props {
 const VIBES = ["Safe", "Experimental", "Chaos"];
 
 export default function NewPostModal({ visible, onClose, onCreated }: Props) {
+  const [savedRecipes, setSavedRecipes] = useState<Recipe[]>([]);
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+
   const [recipeName, setRecipeName] = useState("");
   const [recipeText, setRecipeText] = useState("");
   const [vibe, setVibe] = useState("Safe");
   const [loading, setLoading] = useState(false);
 
   const canSubmit = recipeName.trim().length > 0 && recipeText.trim().length > 0;
+
+  useEffect(() => {
+    if (visible) {
+      (async () => {
+        try {
+          const data = await fetchRecipes();
+          setSavedRecipes(data);
+        } catch {
+          // ignore
+        }
+      })();
+    }
+  }, [visible]);
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -30,14 +47,16 @@ export default function NewPostModal({ visible, onClose, onCreated }: Props) {
       const post = await createPost({
         recipeName: recipeName.trim(),
         recipeText: recipeText.trim(),
-        ingredients: [],
+        ingredients: selectedRecipe ? selectedRecipe.ingredients : [],
         vibe,
-        totalCalories: 0,
+        totalCalories: selectedRecipe ? selectedRecipe.totalCalories : 0,
+        videos: selectedRecipe ? selectedRecipe.videos : [],
       });
       onCreated(post);
       setRecipeName("");
       setRecipeText("");
       setVibe("Safe");
+      setSelectedRecipe(null);
       onClose();
     } catch {
       // no-op
@@ -57,12 +76,53 @@ export default function NewPostModal({ visible, onClose, onCreated }: Props) {
         </View>
 
         <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
+          {/* Saved Recipes Selection */}
+          <View style={styles.field}>
+            <Text style={styles.label}>SHARE_A_SAVED_RECIPE</Text>
+            {savedRecipes.length === 0 ? (
+              <Text style={styles.noRecipes}>No saved recipes found</Text>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.recipeList}>
+                {savedRecipes.map((r) => {
+                  const isSel = selectedRecipe?._id === r._id;
+                  return (
+                    <TouchableOpacity
+                      key={r._id}
+                      style={[styles.recipePill, isSel && styles.recipePillActive]}
+                      onPress={() => {
+                        if (isSel) {
+                          setSelectedRecipe(null);
+                          setRecipeName("");
+                          setRecipeText("");
+                          setVibe("Safe");
+                        } else {
+                          setSelectedRecipe(r);
+                          setRecipeName(r.recipeName);
+                          setRecipeText(r.recipeText || r.steps);
+                          setVibe(r.vibe);
+                        }
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.recipePillText, isSel && styles.recipePillTextActive]}>
+                        🍳 {r.recipeName}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </View>
+
           <View style={styles.field}>
             <Text style={styles.label}>RECIPE_NAME</Text>
             <TextInput
               style={styles.input}
               value={recipeName}
-              onChangeText={setRecipeName}
+              onChangeText={(t) => {
+                setRecipeName(t);
+                setSelectedRecipe(null); // break connection if edited manually
+              }}
               placeholder="My Secret Recipe"
               placeholderTextColor="#3f3f3f"
               selectionColor="#c5fb45"
@@ -91,7 +151,10 @@ export default function NewPostModal({ visible, onClose, onCreated }: Props) {
             <TextInput
               style={[styles.input, styles.textArea]}
               value={recipeText}
-              onChangeText={setRecipeText}
+              onChangeText={(t) => {
+                setRecipeText(t);
+                setSelectedRecipe(null); // break connection if edited manually
+              }}
               placeholder="Describe your recipe steps..."
               placeholderTextColor="#3f3f3f"
               selectionColor="#c5fb45"
@@ -159,4 +222,14 @@ const styles = StyleSheet.create({
   submitBtnDisabled: { backgroundColor: "#1f1f1f" },
   submitText: { color: "#000", fontSize: 11, fontWeight: "800", letterSpacing: 3, fontFamily: MONO },
   submitTextDisabled: { color: "#555" },
+  noRecipes: { color: "#475569", fontSize: 12, fontFamily: MONO, marginTop: 4 },
+  recipeList: { paddingVertical: 4 },
+  recipePill: {
+    borderWidth: 1, borderColor: "#1f1f1f",
+    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 8,
+    marginRight: 8, backgroundColor: "rgba(255,255,255,0.03)",
+  },
+  recipePillActive: { borderColor: ACCENT, backgroundColor: "rgba(197,251,69,0.1)" },
+  recipePillText: { color: "#94a3b8", fontSize: 12, fontFamily: MONO },
+  recipePillTextActive: { color: ACCENT, fontWeight: "700" },
 });

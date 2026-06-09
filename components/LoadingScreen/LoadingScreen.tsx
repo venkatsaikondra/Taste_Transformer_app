@@ -7,6 +7,7 @@ import {
     Text,
     View,
 } from "react-native";
+import LottieView from "lottie-react-native";
 
 interface LoadingScreenProps {
   isVisible: boolean;
@@ -44,29 +45,13 @@ export default function LoadingScreen({
     >
       <View style={styles.overlay}>
         <View style={styles.container}>
-          {/* ── Lottie / Video placeholder ──────────────────────────────────
-              Replace the placeholder View below with:
-
-              import LottieView from "lottie-react-native";
-              <LottieView
-                source={require("@/assets/animations/fridge.json")}
-                autoPlay loop
-                style={styles.animation}
-              />
-
-              Or if using expo-video for the MP4:
-              import { Video, ResizeMode } from "expo-video";
-              <Video
-                source={require("@/assets/animations/fridge_removed_marker.mp4")}
-                style={styles.animation}
-                resizeMode={ResizeMode.CONTAIN}
-                isLooping shouldPlay isMuted
-              />
-          ─────────────────────────────────────────────────────────────── */}
           <View style={styles.animationPlaceholder}>
-            <Text style={styles.animationEmoji}>🧊</Text>
-            <Text style={styles.animationEmoji}>❄️</Text>
-            <Text style={styles.animationEmoji}>🍽️</Text>
+            <LottieView
+              source={require("@/assets/Animations/Food Carousel.json")}
+              autoPlay
+              loop
+              style={styles.animation}
+            />
           </View>
 
           {/* Status text */}

@@ -64,5 +64,5 @@ const styles = StyleSheet.create({
     borderRadius: 4, marginRight: 10, flexShrink: 0,
   },
   track: { flex: 1, overflow: "hidden" },
-  text: { color: "#94a3b8", fontSize: 11, fontFamily: MONO, whiteSpace: "nowrap" } as any,
+  text: { color: "#94a3b8", fontSize: 11, fontFamily: MONO } as any,
 });
