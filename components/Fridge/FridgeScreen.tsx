@@ -117,11 +117,7 @@ export default function FridgeScreen() {
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : "Failed to generate recipe";
-      if (msg.includes("limit")) {
-        setGenError("Free generation limit reached.");
-      } else {
-        setGenError(msg);
-      }
+      setGenError(msg);
     } finally {
       setGenerating(false);
     }
@@ -473,17 +469,17 @@ export default function FridgeScreen() {
       {kitchenModeOpen && recipeText && (
         <KitchenMode
           steps={
-            recipeText // Use the raw recipeText for KitchenMode
-              .split("\n") // Split into lines
-              .map((l: string) => l.trim()) // Trim each line to remove leading/trailing whitespace
-              .filter((l: string) => l.length > 0) // Remove any empty lines
+            recipeText
+              .split("\n")
+              .map((l: string) => l.trim())
+              .filter((l: string) => l.length > 0)
               .filter(
                 (l: string) =>
                   !/^(recipe name|ingredients?|tips?|notes?|steps?|instructions?|directions?)/i.test(
                     l,
                   ),
-              ) // Filter out common section headers
-              .map((l: string) => l.replace(/^\d+[.)]\s*|^[-•*]\s*/, "")) // Remove any leading list markers (e.g., "1. ", "- ", "• ")
+              )
+              .map((l: string) => l.replace(/^\d+[.)]\s*|^[-•*]\s*/, ""))
           }
           onClose={() => setKitchenModeOpen(false)}
           onBackToRecipe={() => {
@@ -794,7 +790,6 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     borderRadius: 10,
     paddingVertical: 10,
-    alignItems: "center",
   },
   clearBtnText: { color: "#475569", fontSize: 12, fontWeight: "600" },
 
